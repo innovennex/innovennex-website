@@ -113,14 +113,46 @@
   }
 
   /* ============================================================
-     HERO — right-side visual reads its image from CSS custom
-     property --hero-img. To replace it, just swap the file at
-     images/hero/hero-background.jpg (any aspect ratio works;
-     it's cropped with object-fit / background-size:cover).
+     HERO — ONE shared full-width background image behind the
+     entire section (both the headline text AND the bottom-right
+     caption). Reads from CSS custom property --hero-img, falling
+     back to images/hero/building.png. To change the photo, just
+     replace that file (any aspect ratio works — it's cropped with
+     background-size:cover) or set --hero-img inline on the section.
      ============================================================ */
-  .hero{position:relative; overflow:hidden; background:var(--paper); padding:0;}
-  .hero-grid{display:grid; grid-template-columns:1fr 1fr; align-items:stretch; min-height:560px;}
-  .hero-content{display:flex; flex-direction:column; justify-content:center; padding:60px 48px 60px 24px;}
+  .hero{
+    position:relative;
+    overflow:hidden;
+    min-height:600px;
+    display:flex;
+    align-items:center;
+    background-color:var(--paper);
+    background-image:var(--hero-img, url('images/hero/building.png'));
+    background-size:cover;
+    background-position:center;
+  }
+  /* Left-to-right fade so headline text stays readable while the photo shows through on the right */
+  .hero::before{
+    content:"";
+    position:absolute; inset:0;
+    background:linear-gradient(90deg,
+      var(--paper) 0%,
+      var(--paper) 34%,
+      rgba(255,255,255,0.88) 44%,
+      rgba(255,255,255,0.4) 58%,
+      rgba(255,255,255,0) 72%);
+    z-index:1;
+  }
+  /* Orange + dark diagonal accent anchored to the bottom-right, over the photo — pure CSS, not image-dependent */
+  .hero::after{
+    content:"";
+    position:absolute; inset:0;
+    background:
+      linear-gradient(135deg, transparent 62%, rgba(240,123,47,0.85) 62%, rgba(240,123,47,0.85) 78%, transparent 78%),
+      linear-gradient(135deg, transparent 78%, rgba(34,32,29,0.85) 78%);
+    z-index:1;
+  }
+  .hero-content{position:relative; z-index:2; max-width:560px; padding:80px 24px;}
   .eyebrow{color:var(--orange-deep); font-size:0.85rem; margin-bottom:14px; font-family:"Space Grotesk",sans-serif; font-weight:600;}
   .hero h1{font-size:clamp(2rem, 4.2vw, 2.9rem); font-weight:700; line-height:1.12;}
   .hero h1 em{font-style:normal; color:var(--orange);}
@@ -137,33 +169,17 @@
   .btn-outline{border-color:var(--line); color:var(--ink);}
   .btn-outline:hover{border-color:var(--orange); color:var(--orange-deep);}
 
-  .hero-visual{
-    position:relative;
-    overflow:hidden;
-    background-image:var(--hero-img, url('images/hero/building.png'));
-    background-size:cover;
-    background-position:center;
-  }
-  /* Orange diagonal accent shapes overlaid on the hero image — pure CSS, not image-dependent */
-  .hero-visual::before{
-    content:"";
-    position:absolute; inset:0;
-    background:linear-gradient(135deg, transparent 62%, rgba(240,123,47,0.85) 62%, rgba(240,123,47,0.85) 78%, transparent 78%);
-  }
-  .hero-visual::after{
-    content:"";
-    position:absolute; inset:0;
-    background:linear-gradient(135deg, transparent 78%, rgba(34,32,29,0.9) 78%);
-  }
   .hero-caption{
-    position:absolute; left:32px; bottom:28px; z-index:2;
+    position:absolute; right:32px; bottom:28px; z-index:2;
     color:#fff; font-family:"Space Grotesk",sans-serif; font-weight:600;
-    font-size:1.15rem; line-height:1.3; text-shadow:0 2px 10px rgba(0,0,0,0.35);
+    font-size:1.15rem; line-height:1.3; text-align:right;
+    text-shadow:0 2px 10px rgba(0,0,0,0.35);
   }
   @media (max-width:860px){
-    .hero-grid{grid-template-columns:1fr; min-height:0;}
-    .hero-content{padding:48px 24px 32px;}
-    .hero-visual{height:320px;}
+    .hero{min-height:0;}
+    .hero::before{background:linear-gradient(180deg, var(--paper) 0%, var(--paper) 55%, rgba(255,255,255,0.9) 68%, rgba(255,255,255,0.55) 82%, rgba(255,255,255,0.15) 100%);}
+    .hero-content{padding:48px 24px 100px;}
+    .hero-caption{right:24px; bottom:16px; font-size:0.95rem;}
   }
 
   /* ---------- Highlight strip ---------- */
@@ -208,16 +224,89 @@
   @media (max-width:600px){.services-grid{grid-template-columns:1fr;}}
 
   /* ---------- Project gallery ---------- */
-  .gallery-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:18px; margin-bottom:20px;}
-  .gallery-card{border:1px solid var(--line); border-radius:14px; overflow:hidden; background:var(--paper-raised);}
-  .gallery-card .img-wrap{aspect-ratio:4/3; overflow:hidden; position:relative; background:var(--paper-alt);}
-  .gallery-card img{width:100%; height:100%; object-fit:cover;}
-  .gallery-card .badge{position:absolute; top:10px; left:10px; background:rgba(24,21,16,0.78); color:#fff; font-size:0.68rem; padding:3px 9px; border-radius:20px; font-weight:600; letter-spacing:0.02em;}
-  .gallery-card .cap{padding:12px 14px;}
-  .gallery-card .cap .t{font-weight:600; font-size:0.86rem;}
-  .gallery-card .cap .s{font-size:0.76rem; color:var(--ink-soft); margin-top:2px;}
-  @media (max-width:920px){.gallery-grid{grid-template-columns:repeat(2,1fr);}}
-  @media (max-width:520px){.gallery-grid{grid-template-columns:1fr;}}
+  /* ============================================================
+     PROJECT ALBUMS — interactive gallery. Each album is a card
+     with a cover photo, title, description and a photo-count
+     badge. Clicking one opens a lightbox with all of that album's
+     images (arrows, thumbnails, keyboard nav). Album data lives in
+     the ALBUMS array near the bottom of this file — add a new
+     object there to add a new album, no CSS/HTML changes needed.
+     ============================================================ */
+  .album-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:22px; margin-bottom:20px;}
+  .album-card{
+    border:1px solid var(--line); border-radius:16px; overflow:hidden; background:var(--paper-raised);
+    cursor:pointer; text-align:left; font-family:inherit; padding:0;
+    transition:box-shadow .2s ease, transform .2s ease;
+  }
+  .album-card:hover{box-shadow:0 12px 28px rgba(0,0,0,0.1); transform:translateY(-4px);}
+  .album-cover{aspect-ratio:4/3; overflow:hidden; position:relative; background:var(--paper-alt);}
+  .album-cover img{width:100%; height:100%; object-fit:cover; transition:transform .4s ease;}
+  .album-card:hover .album-cover img{transform:scale(1.08);}
+  .album-cover .count-badge{
+    position:absolute; top:10px; right:10px; background:rgba(24,21,16,0.78); color:#fff;
+    font-size:0.7rem; padding:4px 10px; border-radius:20px; font-weight:600; letter-spacing:0.02em;
+    display:flex; align-items:center; gap:5px;
+  }
+  .album-cover .view-hint{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    background:rgba(24,21,16,0); color:#fff; font-weight:600; font-size:0.9rem;
+    opacity:0; transition:opacity .2s ease, background .2s ease;
+  }
+  .album-card:hover .view-hint{opacity:1; background:rgba(24,21,16,0.32);}
+  .album-info{padding:16px 18px 20px;}
+  .album-info .t{font-weight:600; font-size:1rem;}
+  .album-info .s{font-size:0.85rem; color:var(--ink-soft); margin-top:4px;}
+  @media (max-width:920px){.album-grid{grid-template-columns:repeat(2,1fr);}}
+  @media (max-width:560px){.album-grid{grid-template-columns:1fr;}}
+
+  /* Lightbox */
+  .lightbox-overlay{
+    position:fixed; inset:0; background:rgba(10,9,7,0.88);
+    display:none; align-items:center; justify-content:center;
+    padding:20px; z-index:110;
+  }
+  .lightbox-overlay.open{display:flex;}
+  .lightbox-box{width:100%; max-width:920px; display:flex; flex-direction:column; gap:14px;}
+  .lightbox-head{display:flex; justify-content:space-between; align-items:flex-start; gap:16px; color:#fff;}
+  .lightbox-head h3{color:#fff; font-size:1.2rem;}
+  .lightbox-head p{color:#c9c5bc; font-size:0.88rem; margin-top:4px; max-width:560px;}
+  .lightbox-close{
+    width:38px; height:38px; border-radius:50%; border:1px solid rgba(255,255,255,0.3);
+    background:rgba(255,255,255,0.08); color:#fff; cursor:pointer; flex:none;
+    display:flex; align-items:center; justify-content:center; font-size:1.1rem;
+  }
+  .lightbox-close:hover{background:var(--orange); border-color:var(--orange);}
+  .lightbox-stage{position:relative; background:#000; border-radius:12px; overflow:hidden; aspect-ratio:16/10;}
+  .lightbox-stage img{
+    width:100%; height:100%; object-fit:contain; background:#0c0b09;
+    opacity:0; transition:opacity .25s ease;
+  }
+  .lightbox-stage img.show{opacity:1;}
+  .lightbox-caption{
+    position:absolute; left:0; right:0; bottom:0; padding:10px 16px;
+    background:linear-gradient(to top, rgba(0,0,0,0.75), transparent);
+    color:#fff; font-size:0.85rem;
+  }
+  .lightbox-counter{
+    position:absolute; top:12px; right:14px; background:rgba(0,0,0,0.55); color:#fff;
+    font-size:0.75rem; padding:3px 10px; border-radius:20px;
+  }
+  .lightbox-nav{
+    position:absolute; top:50%; transform:translateY(-50%);
+    width:44px; height:44px; border-radius:50%; border:none; cursor:pointer;
+    background:rgba(255,255,255,0.14); color:#fff; font-size:1.3rem;
+    display:flex; align-items:center; justify-content:center; transition:background .2s ease;
+  }
+  .lightbox-nav:hover{background:var(--orange);}
+  .lightbox-nav.prev{left:14px;}
+  .lightbox-nav.next{right:14px;}
+  .lightbox-thumbs{display:flex; gap:8px; overflow-x:auto; padding-bottom:4px;}
+  .lightbox-thumbs img{
+    width:64px; height:48px; object-fit:cover; border-radius:6px; cursor:pointer;
+    opacity:0.5; border:2px solid transparent; transition:opacity .2s ease, border-color .2s ease; flex:none;
+  }
+  .lightbox-thumbs img.active{opacity:1; border-color:var(--orange);}
+  .lightbox-thumbs img:hover{opacity:0.85;}
 
   .table-scroll{overflow-x:auto; border:1px solid var(--line); border-radius:14px; margin-top:28px;}
   table.projects{width:100%; border-collapse:collapse; min-width:680px; font-size:0.9rem;}
@@ -366,26 +455,24 @@
   </div>
 </header>
 
-<section class="hero" id="top" style="padding:0;">
-  <div class="hero-grid">
-    <div class="hero-content">
-      <div class="eyebrow">Sabah-based · ICT · Engineering · Fire Safety · Cleaning</div>
-      <h1>SOLUTIONS FOR A <em>SMARTER</em> TOMORROW</h1>
-      <p>Your trusted partner in ICT, engineering, fire safety, cleaning and integrated solutions.</p>
-      <div class="hero-actions">
-        <a class="btn btn-primary" href="#contact">Let's Work Together</a>
-        <a class="btn btn-outline" href="#services">See our services</a>
-      </div>
-    </div>
-    <!--
-      To change the hero image: replace the file at images/hero/hero-background.jpg
-      with any photo you like (a building, a job site, your team, etc). It will
-      automatically fill this panel and crop to fit. No HTML/CSS edits needed.
-    -->
-    <div class="hero-visual">
-      <div class="hero-caption">Innovative Solutions<br>Sustainable Communities</div>
+<!--
+  To change the hero photo: replace the file at images/hero/building.png
+  with any photo you like (a building, a job site, your team, etc). It's
+  now the shared background for the WHOLE hero section — both the
+  headline on the left and the caption on the bottom-right sit on top
+  of it. No HTML/CSS edits needed to swap the image.
+-->
+<section class="hero" id="top">
+  <div class="hero-content">
+    <div class="eyebrow">Sabah-based · ICT · Engineering · Fire Safety · Cleaning</div>
+    <h1>SOLUTIONS FOR A <em>SMARTER</em> TOMORROW</h1>
+    <p>Your trusted partner in ICT, engineering, fire safety, cleaning and integrated solutions.</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="#contact">Let's Work Together</a>
+      <a class="btn btn-outline" href="#services">See our services</a>
     </div>
   </div>
+  <div class="hero-caption">Innovative Solutions<br>Sustainable Communities</div>
 </section>
 
 <div class="strip">
@@ -459,24 +546,12 @@
       <p>A showcase of delivered work and trusted collaborations — from facility upgrades to in-house software products.</p>
     </div>
 
-    <div class="gallery-grid">
-      <div class="gallery-card">
-        <div class="img-wrap"><span class="badge">Before</span><img src="images/projects/incinerator-before.jpg" alt="Veterinary incinerator building before maintenance"></div>
-        <div class="cap"><div class="t">Incinerator Building</div><div class="s">Jabatan Veterinar, Kinarut — before works</div></div>
-      </div>
-      <div class="gallery-card">
-        <div class="img-wrap"><span class="badge">After</span><img src="images/projects/incinerator-after.jpg" alt="Veterinary incinerator building after maintenance"></div>
-        <div class="cap"><div class="t">Incinerator Building</div><div class="s">Jabatan Veterinar, Kinarut — completed</div></div>
-      </div>
-      <div class="gallery-card">
-        <div class="img-wrap" style="background:#141221;"><img src="images/projects/jumbarber-app.jpg" alt="JumBarber app booking screen" style="object-fit:contain;"></div>
-        <div class="cap"><div class="t">JumBarber App</div><div class="s">Booking &amp; queue system — Uncle Freda Barber Shop</div></div>
-      </div>
-      <div class="gallery-card">
-        <div class="img-wrap" style="background:#0f1c33;"><img src="images/projects/financi-app.jpg" alt="FinanCI app sign-in screen" style="object-fit:contain;"></div>
-        <div class="cap"><div class="t">FinanCI App</div><div class="s">Personal finance management — internal product</div></div>
-      </div>
-    </div>
+    <!--
+      Album gallery is rendered by JS from the ALBUMS array near the
+      bottom of this file. To add a new album, add a new object there
+      — no HTML changes needed here.
+    -->
+    <div class="album-grid" id="albumGrid"></div>
 
     <div class="table-scroll">
       <table class="projects">
@@ -499,6 +574,26 @@
     </div>
   </div>
 </section>
+
+<div class="lightbox-overlay" id="lightboxOverlay">
+  <div class="lightbox-box">
+    <div class="lightbox-head">
+      <div>
+        <h3 id="lightboxTitle"></h3>
+        <p id="lightboxDesc"></p>
+      </div>
+      <button class="lightbox-close" id="lightboxCloseBtn" aria-label="Close">✕</button>
+    </div>
+    <div class="lightbox-stage">
+      <span class="lightbox-counter" id="lightboxCounter"></span>
+      <button class="lightbox-nav prev" id="lightboxPrev" aria-label="Previous image">‹</button>
+      <img id="lightboxImg" src="" alt="">
+      <button class="lightbox-nav next" id="lightboxNext" aria-label="Next image">›</button>
+      <div class="lightbox-caption" id="lightboxCaption"></div>
+    </div>
+    <div class="lightbox-thumbs" id="lightboxThumbs"></div>
+  </div>
+</div>
 
 <section id="about">
   <div class="wrap about-layout">
@@ -675,6 +770,133 @@
    photo, replace the file in images/team/ (keep the same name,
    or update the "photo" path below to a new filename).
    ============================================================ */
+/* ============================================================
+   PROJECT ALBUMS — each album is a group of photos with a title
+   and description. Add a new album any time by adding another
+   object to this array: give it a unique id, a title, a short
+   description, and an "images" array of {src, caption}. The
+   gallery grid and lightbox both render automatically from this.
+   ============================================================ */
+const ALBUMS = [
+  {
+    id: "incinerator",
+    title: "Veterinary Incinerator Building",
+    description: "Maintenance works for Jabatan Veterinar, Kinarut.",
+    images: [
+      { src: "images/projects/incinerator-before.jpg", caption: "Before — existing structure prior to works" },
+      { src: "images/projects/incinerator-after.jpg", caption: "After — completed maintenance work" }
+    ]
+  },
+  {
+    id: "jumbarber",
+    title: "JumBarber App",
+    description: "Booking & queue management system for Uncle Freda Barber Shop.",
+    images: [
+      { src: "images/projects/jumbarber-app.jpg", caption: "Book Appointment screen" }
+    ]
+  },
+  {
+    id: "financi",
+    title: "FinanCI App",
+    description: "Personal finance management — internal product.",
+    images: [
+      { src: "images/projects/financi-app.jpg", caption: "Sign-in screen" }
+    ]
+  }
+  /* Example of adding a new album later:
+  {
+    id: "new-project",
+    title: "My New Project",
+    description: "One-line summary of the project.",
+    images: [
+      { src: "images/projects/new-project-1.jpg", caption: "Photo 1 caption" },
+      { src: "images/projects/new-project-2.jpg", caption: "Photo 2 caption" }
+    ]
+  },
+  */
+];
+
+let currentAlbum = null;
+let currentIndex = 0;
+
+function renderAlbums(){
+  const grid = document.getElementById('albumGrid');
+  grid.innerHTML = ALBUMS.map(function(a){
+    const count = a.images.length;
+    return '<button class="album-card" data-id="' + a.id + '">' +
+      '<div class="album-cover">' +
+        '<span class="count-badge">🖼 ' + count + (count === 1 ? ' photo' : ' photos') + '</span>' +
+        '<img src="' + a.images[0].src + '" alt="' + a.title + '" loading="lazy">' +
+        '<div class="view-hint">View album →</div>' +
+      '</div>' +
+      '<div class="album-info"><div class="t">' + a.title + '</div><div class="s">' + a.description + '</div></div>' +
+    '</button>';
+  }).join('');
+  grid.querySelectorAll('.album-card').forEach(function(btn){
+    btn.addEventListener('click', function(){ openLightbox(btn.getAttribute('data-id')); });
+  });
+}
+
+function openLightbox(albumId){
+  currentAlbum = ALBUMS.find(function(a){ return a.id === albumId; });
+  if(!currentAlbum) return;
+  currentIndex = 0;
+  document.getElementById('lightboxTitle').textContent = currentAlbum.title;
+  document.getElementById('lightboxDesc').textContent = currentAlbum.description;
+  renderThumbs();
+  showLightboxImage(0);
+  document.getElementById('lightboxOverlay').classList.add('open');
+}
+
+function renderThumbs(){
+  const wrap = document.getElementById('lightboxThumbs');
+  if(currentAlbum.images.length <= 1){ wrap.innerHTML = ''; wrap.style.display = 'none'; return; }
+  wrap.style.display = 'flex';
+  wrap.innerHTML = currentAlbum.images.map(function(img, i){
+    return '<img src="' + img.src + '" data-i="' + i + '" alt="thumbnail ' + (i+1) + '">';
+  }).join('');
+  wrap.querySelectorAll('img').forEach(function(t){
+    t.addEventListener('click', function(){ showLightboxImage(parseInt(t.getAttribute('data-i'), 10)); });
+  });
+}
+
+function showLightboxImage(i){
+  const images = currentAlbum.images;
+  currentIndex = (i + images.length) % images.length;
+  const img = document.getElementById('lightboxImg');
+  img.classList.remove('show');
+  setTimeout(function(){
+    img.src = images[currentIndex].src;
+    img.alt = images[currentIndex].caption || currentAlbum.title;
+    img.classList.add('show');
+  }, 80);
+  document.getElementById('lightboxCaption').textContent = images[currentIndex].caption || '';
+  document.getElementById('lightboxCounter').textContent = (currentIndex + 1) + ' / ' + images.length;
+  const navVisible = images.length > 1;
+  document.getElementById('lightboxPrev').style.display = navVisible ? 'flex' : 'none';
+  document.getElementById('lightboxNext').style.display = navVisible ? 'flex' : 'none';
+  document.querySelectorAll('.lightbox-thumbs img').forEach(function(t, idx){
+    t.classList.toggle('active', idx === currentIndex);
+  });
+}
+
+function closeLightbox(){ document.getElementById('lightboxOverlay').classList.remove('open'); }
+
+document.getElementById('lightboxCloseBtn').addEventListener('click', closeLightbox);
+document.getElementById('lightboxPrev').addEventListener('click', function(){ showLightboxImage(currentIndex - 1); });
+document.getElementById('lightboxNext').addEventListener('click', function(){ showLightboxImage(currentIndex + 1); });
+document.getElementById('lightboxOverlay').addEventListener('click', function(e){
+  if(e.target.id === 'lightboxOverlay') closeLightbox();
+});
+document.addEventListener('keydown', function(e){
+  if(!document.getElementById('lightboxOverlay').classList.contains('open')) return;
+  if(e.key === 'Escape') closeLightbox();
+  if(e.key === 'ArrowLeft') showLightboxImage(currentIndex - 1);
+  if(e.key === 'ArrowRight') showLightboxImage(currentIndex + 1);
+});
+
+renderAlbums();
+
 const TEAM = [
   {
     id: "shahazureen",
