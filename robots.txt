@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://innovennex.github.io/innovennex-website/sitemap.xml
